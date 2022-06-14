@@ -61,14 +61,23 @@ print(seq_len)
 
 
 def create_temporal_graph_example(start, session_len, seq_len):
+    owner = random.randint(1, session_len)
     for i in range(session_len):
         con = random.randint(1, session_len)
-        owner = random.randint(1, session_len)
         print("creating graph at time step 0")
         print(f"creating connection for node number {i} with {con}")
         if i != con and i != owner:
-            g[0][0].append(i)
-            g[0][1].append(con)
+            if con in g[0][0]:
+                ind = g[0][0].index(con)
+                if g[0][1][ind] != i:
+                    g[0][0].append(i)
+                    g[0][1].append(con)
+                else:
+                    continue
+            else:
+                g[0][0].append(i)
+                g[0][1].append(con)
+
     for t in range(1, max(seq_len.values())):
         print(f" creating graph at time step {t}")
         #  inside this i will create the graph connectivity (edges) in COO format
