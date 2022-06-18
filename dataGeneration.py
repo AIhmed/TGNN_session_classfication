@@ -1,13 +1,11 @@
 import pandas as pd
 import random
-import time
 from transformers import AutoTokenizer
 from torch.nn import Embedding
+import torch
 from torch_geometric_temporal import DynamicGraphTemporalSignal
 EMBEDDING_SIZE = 768
 
-#  df2 = pd.DataFrame(pd.read_excel('ajCommentClassification.xlsx'))
-#  df = pd.DataFrame(pd.read_excel('tweetClassificationSummary.xlsx'))
 df = pd.DataFrame(pd.read_excel('labeledDataset.xlsx'))
 tokenizer = AutoTokenizer.from_pretrained('aubmindlab/bert-base-arabert')
 embeddings = Embedding(tokenizer.vocab_size, EMBEDDING_SIZE)
@@ -16,7 +14,6 @@ df = df.loc[~df['Label'].isna()]
 df.reset_index(inplace=True)
 df = df[:200]
 
-print(len(df))
 
 def max_comment_len(df):
     sentence_embedding = list()
@@ -46,10 +43,10 @@ def max_comment_len(df):
 
 
 sequence_lengths, embedding_space = max_comment_len(df)
-node_features = [[]for session in range(len(df)//10)]
+node_features = [[[] for timesteps in range(max(sequence_lengths.values()))] for session in range(len(df)//10)]
 targets = list()
 g = [[[[] for j in range(2)] for seq in range(max(sequence_lengths.values()))] for session in range(len(df) // 10)]
-edge_weights = [[[] for time_step in range(max(sequence_lengths.values()))] for session in range(len(df)//10)]
+edge_weights = [[[] for timesteps in range(max(sequence_lengths.values()))] for session in range(len(df)//10)]
 
 
 def attr_edge_weight(session, timestep, inc, adj):
@@ -62,12 +59,9 @@ def attr_edge_weight(session, timestep, inc, adj):
 
 
 def create_temporal_graph_example(session, start, session_len):
-    node_features[session] = embedding_space[start: start+session_len]
     owner = random.randint(1, session_len)
     for i in range(session_len):
         con = random.randint(1, session_len)
-        print(f"creating graph at time step 0 for session {session}")
-        print(f"creating connection for node number {i} with {con} for session {session}")
         if i != con and i != owner:
             if con in g[session][0][0]:
                 ind = g[session][0][0].index(con)
@@ -81,15 +75,16 @@ def create_temporal_graph_example(session, start, session_len):
                 g[session][0][0].append(i)
                 g[session][0][1].append(con)
                 attr_edge_weight(session, 0, start+i, start+con)
+        node_features[session][0].append(embedding_space[start+i][0])
 
     for t in range(1, max(list(sequence_lengths.values())[start: start+session_len])):
-        print(f" creating graph at time step {t}")
         g[session][t][0] = g[session][t-1][0].copy()
         g[session][t][1] = g[session][t-1][1].copy()
         edge_weights[session][t] = edge_weights[session][t-1].copy()
-        print(f"the edge_weight at time step {t} is \n\n")
-        print(edge_weights[session][t])
-        print(f"the number of edge in the time step {t} is {len(g[session][t][0])} and {len(g[session][t][1])}")
+        while i < session_len:
+            if len(embedding_space[start + i]) > t:
+                node_features[session][t].append(embedding_space[start + i][t])
+            i += 1
         if t in list(sequence_lengths.values())[start: start + session_len]:
             node = list(sequence_lengths.keys())[start: start+session_len][list(sequence_lengths.values())[start: start+session_len].index(t)]
             for e in range(g[session][t][0].count(node)):
@@ -118,7 +113,7 @@ while start < len(df)-20:
 num_el = len(node_features)
 for i in range(num_el):
     if i != len(targets):
-        if node_features[-1] == []:
+        if node_features[-1] == [[] for time_step in range(max(sequence_lengths.values()))]:
             del node_features[-1]
         if g[-1] == [[[] for j in range(2)] for seq in range(max(sequence_lengths.values()))]:
             del g[-1]
@@ -126,9 +121,5 @@ for i in range(num_el):
             del edge_weights[-1]
     else:
         break
-print(node_features)
-print(targets)
-print(len(node_features), len(targets))
-print(len(g), len(edge_weights))
 data = DynamicGraphTemporalSignal(edge_indices=g, edge_weights=edge_weights, features=node_features, targets=targets)
 print(data)
