@@ -2,8 +2,7 @@ import pandas as pd
 import random
 from transformers import AutoTokenizer
 from torch.nn import Embedding
-import torch
-from torch_geometric_temporal import DynamicGraphTemporalSignal
+from torch_geometric_temporal import StaticGraphTemporalSignal
 EMBEDDING_SIZE = 768
 
 df = pd.DataFrame(pd.read_excel('labeledDataset.xlsx'))
@@ -24,22 +23,6 @@ def max_comment_len(df):
         lengths[index] = tokenized_inputs.shape[0]
 
     return (lengths, sentence_embedding)
-
-
-#  inside this i will create the graph connectivity (edges) in COO format
-#  it is a matrix of [2 * num_edges] where each column in the two rows contain the connected node
-#  the owner of the session only have incident connection to it. hence, we only see it's id on the second row.
-#  for each of the node in the session have to have a connection with one node.
-#  I also have to create the edge_indeces which contain information about the edges
-#  for each graph we have a matrix of edge_indeces where each row repsent an edge and each column in that row represent the two node connected with that edge.
-
-#  i also have to initialise the node feature which are the embedding for the tokens we have.
-
-
-#  session_len = random.randint(10, 20)
-#  seq_len, node_features = max_comment_len(df[: session_len])
-#  g = [[[] for node in range(2)] for time_step in range(max(seq_len.values()))]
-#  edge_weight = [[] for time_step in range(max(seq_len.values()))]
 
 
 sequence_lengths, embedding_space = max_comment_len(df)
@@ -84,19 +67,9 @@ def create_temporal_graph_example(session, start, session_len):
         while i < session_len:
             if len(embedding_space[start + i]) > t:
                 node_features[session][t].append(embedding_space[start + i][t])
+            else:
+                edge_weights[session][t][i] = 0
             i += 1
-        if t in list(sequence_lengths.values())[start: start + session_len]:
-            node = list(sequence_lengths.keys())[start: start+session_len][list(sequence_lengths.values())[start: start+session_len].index(t)]
-            for e in range(g[session][t][0].count(node)):
-                index = g[session][t][0].index(node)
-                g[session][t][0].pop(index)
-                g[session][t][1].pop(index)
-                edge_weights[session][t].pop(index)
-            for e in range(g[session][t][1].count(node)):
-                index = g[session][t][1].index(node)
-                g[session][t][0].pop(index)
-                g[session][t][1].pop(index)
-                edge_weights[session][t].pop(index)
     if edge_weights[session][0].count(1) > edge_weights[session][0].count(-1):
         targets.append(1)
     else:
@@ -110,16 +83,14 @@ while start < len(df)-20:
     create_temporal_graph_example(s, start, session_len)
     s += 1
     start += session_len
+
 num_el = len(node_features)
 for i in range(num_el):
-    if i != len(targets):
-        if node_features[-1] == [[] for time_step in range(max(sequence_lengths.values()))]:
-            del node_features[-1]
-        if g[-1] == [[[] for j in range(2)] for seq in range(max(sequence_lengths.values()))]:
-            del g[-1]
-        if edge_weights[-1] == [[] for time_step in range(max(sequence_lengths.values()))]:
-            del edge_weights[-1]
-    else:
-        break
-data = DynamicGraphTemporalSignal(edge_indices=g, edge_weights=edge_weights, features=node_features, targets=targets)
-print(data)
+    if node_features[-1] == [[] for time_step in range(max(sequence_lengths.values()))]:
+        del node_features[-1]
+    if g[-1] == [[[] for j in range(2)] for seq in range(max(sequence_lengths.values()))]:
+        del g[-1]
+    if edge_weights[-1] == [[] for time_step in range(max(sequence_lengths.values()))]:
+        del edge_weights[-1]
+for i in range(len(edge_weights)):
+    print(edge_weights[i])
