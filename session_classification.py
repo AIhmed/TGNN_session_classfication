@@ -19,13 +19,25 @@ class SpatialEncoding(nn.Module):
         edge_weight0 = torch.tensor(edge_weights[0], dtype=torch.float32)
         edge_index1 = torch.tensor(edge_indices[1])
         edge_weight1 = torch.tensor(edge_weights[1], dtype=torch.float32)
+        s0 = torch.sparse_coo_tensor(edge_index0, edge_weight0)
+        s1 = torch.sparse_coo_tensor(edge_index1, edge_weight1)
 
+        print(len(node_features[0]))
+        print(set(edge_indices[0][0]).union(set(edge_indices[0][1])))
         first = self.embedding(torch.tensor(node_features[0]))
+        print(s0.to_dense().shape, first.shape)
+        print(s0)
+        print(first)
+
         first = self.gcn1(x=first, edge_index=edge_index0, edge_weight=edge_weight0)
         first = self.gcn2(x=first, edge_index=edge_index0, edge_weight=edge_weight0)
         first = self.gcn3(x=first, edge_index=edge_index0, edge_weight=edge_weight0)
 
+        print(len(node_features[1]))
+        print(set(edge_indices[1][0]).union(set(edge_indices[1][1])))
         second = self.embedding(torch.tensor(node_features[1]))
+        print(s1.to_dense().shape, second.shape)
+
         second = self.gcn1(x=second, edge_index=edge_index1, edge_weight=edge_weight1)
         second = self.gcn2(x=second, edge_index=edge_index1, edge_weight=edge_weight1)
         second = self.gcn3(x=second, edge_index=edge_index1, edge_weight=edge_weight1)
@@ -44,7 +56,7 @@ class SpatialEncoding(nn.Module):
         return t
 
 
-f = open("sample_data1.json", "r")
+f = open("sample_data2.json", "r")
 data = json.load(f)
 f.close()
 spatial = SpatialEncoding()
