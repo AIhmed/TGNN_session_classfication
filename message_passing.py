@@ -34,14 +34,14 @@ class SpatialEncoding:
         t = torch.cat((self.propagate(0), self.propagate(1)))
         print(t.shape)
         for timestep in range(2, len(self.edge_indices)):
-            print(f"the edge_indices we have for this timestep are {self.edge_indices[timestep]}")
+            print(f"the edge_indices we have for this timestep {timestep} are {self.edge_indices[timestep]}")
             t = torch.cat((t, self.propagate(timestep)))
             print(f"shape of tensor at timestep {timestep} {t.shape}")
             print("\n\n")
         return t
 
 
-f = open("sample_data2.json", "r")
+f = open("sample_data3.json", "r")
 data = json.load(f)
 f.close()
 spatial_encoding = SpatialEncoding(data[0])

@@ -10,9 +10,9 @@ class SpatialEncoding(nn.Module):
     def __init__(self):
         super().__init__()
         self.embedding = nn.Embedding(VOCAB_SIZE, EMBEDDING_SIZE)
-        self.gcn1 = gnn.GCNConv(in_channels=EMBEDDING_SIZE, out_channels=EMBEDDING_SIZE)
-        self.gcn2 = gnn.GCNConv(in_channels=EMBEDDING_SIZE, out_channels=EMBEDDING_SIZE)
-        self.gcn3 = gnn.GCNConv(in_channels=EMBEDDING_SIZE, out_channels=EMBEDDING_SIZE)
+        self.gcn1 = gnn.GATConv(in_channels=EMBEDDING_SIZE, out_channels=EMBEDDING_SIZE)
+        self.gcn2 = gnn.GATConv(in_channels=EMBEDDING_SIZE, out_channels=EMBEDDING_SIZE)
+        self.gcn3 = gnn.GATConv(in_channels=EMBEDDING_SIZE, out_channels=EMBEDDING_SIZE)
 
     def forward(self, node_features, edge_indices, edge_weights):
         edge_index0 = torch.tensor(edge_indices[0])
@@ -25,18 +25,18 @@ class SpatialEncoding(nn.Module):
         print(s.to_dense().shape, first.shape)
         print("\n\n")
 
-        first = self.gcn1(x=first, edge_index=edge_index0, edge_weight=edge_weight0)
-        first = self.gcn2(x=first, edge_index=edge_index0, edge_weight=edge_weight0)
-        first = self.gcn3(x=first, edge_index=edge_index0, edge_weight=edge_weight0)
+        first = self.gcn1(x=first, edge_index=edge_index0)  #  , edge_weight=edge_weight0)
+        first = self.gcn2(x=first, edge_index=edge_index0)  #  , edge_weight=edge_weight0)
+        first = self.gcn3(x=first, edge_index=edge_index0)  #  , edge_weight=edge_weight0)
 
         second = self.embedding(torch.tensor(node_features[1]))
         s = torch.sparse_coo_tensor(edge_index1, edge_weight1)
         print(s.to_dense().shape, second.shape)
         print("\n\n")
 
-        second = self.gcn1(x=second, edge_index=edge_index1, edge_weight=edge_weight1)
-        second = self.gcn2(x=second, edge_index=edge_index1, edge_weight=edge_weight1)
-        second = self.gcn3(x=second, edge_index=edge_index1, edge_weight=edge_weight1)
+        second = self.gcn1(x=second, edge_index=edge_index1)  #  , edge_weight=edge_weight1)
+        second = self.gcn2(x=second, edge_index=edge_index1)  #  , edge_weight=edge_weight1)
+        second = self.gcn3(x=second, edge_index=edge_index1)  #  , edge_weight=edge_weight1)
 
         t = torch.cat((first, second))
         for i in range(2, len(edge_indices)):
@@ -48,9 +48,9 @@ class SpatialEncoding(nn.Module):
             print(i_edge_index)
             print(len(set(i_edge_index[0].tolist()).union(set(i_edge_index[1].tolist()))))
             print(s.to_dense().shape, nth.shape)
-            nth = self.gcn1(x=nth, edge_index=i_edge_index, edge_weight=i_edge_weight)
-            nth = self.gcn2(x=nth, edge_index=i_edge_index, edge_weight=i_edge_weight)
-            nth = self.gcn3(x=nth, edge_index=i_edge_index, edge_weight=i_edge_weight)
+            nth = self.gcn1(x=nth, edge_index=i_edge_index)  #  , edge_weight=i_edge_weight)
+            nth = self.gcn2(x=nth, edge_index=i_edge_index)  #  , edge_weight=i_edge_weight)
+            nth = self.gcn3(x=nth, edge_index=i_edge_index)  #  , edge_weight=i_edge_weight)
             t = torch.cat((t, nth))
             print(t.shape)
             print("\n\n\n")
